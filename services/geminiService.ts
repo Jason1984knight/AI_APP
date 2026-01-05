@@ -10,7 +10,7 @@ const MAX_RETRIES = 1;
  */
 const getApiKey = () => {
   try {
-    return process.env.API_KEY;
+    return process.env.GERMINI_API_KEY;
   } catch (e) {
     console.warn("Process environment not found, API_KEY may be missing.");
     return undefined;
