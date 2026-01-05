@@ -2,28 +2,47 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { Message } from "../types";
 
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 1;
+
+/**
+ * Safely retrieves the API key from process.env.
+ * Prevents ReferenceErrors in browser environments where 'process' is not defined.
+ */
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY;
+  } catch (e) {
+    console.warn("Process environment not found, API_KEY may be missing.");
+    return undefined;
+  }
+};
 
 export const getGeminiExplanation = async (
   topic: string, 
   history: Message[] = [],
   retryCount = 0
 ): Promise<string> => {
-  // Always use process.env.API_KEY directly when initializing the GoogleGenAI client instance
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
   
+  if (!apiKey) {
+    const errorMsg = "API Key is missing. Ensure 'API_KEY' is set in your Vercel Environment Variables.";
+    console.error(errorMsg);
+    return `Error: ${errorMsg}`;
+  }
+
   const systemInstruction = `You are a world-class AI researcher and educator. 
   The user is exploring an AI Ecosystem Landscape diagram and has clicked on "${topic}". 
-  Provide a concise but insightful explanation (2-3 paragraphs max) of what this is, 
-  its historical context, and how it relates to the broader AI field. 
-  Use formatting like bullet points or bold text where appropriate. 
-  Keep the tone professional yet accessible.`;
+  Provide a concise but insightful explanation (2-3 paragraphs max). 
+  Use bold text for key terms and bullet points for lists.`;
 
   const prompt = history.length === 0 
     ? `Explain the role of "${topic}" in the AI ecosystem.`
     : history[history.length - 1].text;
 
   try {
+    // Create instance right before call as recommended
+    const ai = new GoogleGenAI({ apiKey });
+    
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [
@@ -35,44 +54,40 @@ export const getGeminiExplanation = async (
       },
     });
 
-    // Check if the content was blocked by safety filters
     const candidate = response.candidates?.[0];
     if (candidate?.finishReason === 'SAFETY') {
-      return "I'm sorry, but I cannot provide an explanation for this specific topic due to safety guidelines.";
+      return "The explanation for this topic was filtered by safety guidelines.";
     }
 
     if (!response.text) {
-      throw new Error("Empty response from model");
+      throw new Error("No text returned from the model.");
     }
 
     return response.text;
   } catch (error: any) {
-    // Log the actual error to the console for easier debugging on Vercel
-    console.error("Gemini API Full Error Context:", {
-      message: error.message,
-      status: error.status,
-      details: error,
-      topic,
-      retryCount
-    });
+    // CRITICAL: Log detailed error for Vercel debugging
+    console.group("Gemini API Error Detail");
+    console.error("Message:", error.message);
+    console.error("Status:", error.status);
+    console.dir(error);
+    console.groupEnd();
 
-    // If it's a transient network error or rate limit, try a simple retry
-    if (retryCount < MAX_RETRIES) {
-      const delay = Math.pow(2, retryCount) * 1000;
-      console.warn(`Attempting retry ${retryCount + 1} in ${delay}ms...`);
-      await new Promise(res => setTimeout(res, delay));
+    if (retryCount < MAX_RETRIES && (!error.status || error.status >= 500)) {
+      console.log(`Retrying... (${retryCount + 1})`);
       return getGeminiExplanation(topic, history, retryCount + 1);
     }
 
-    // Friendly user-facing error messages based on common issues
-    if (error.message?.includes('429')) {
-      return "The service is currently busy (Rate Limit reached). Please wait a moment and try clicking again.";
+    // Specific user-facing messages based on error content
+    if (error.message?.includes('403')) {
+      return "Connection Error (403): This model might be restricted in your deployment region. Try a different region in Vercel settings.";
     }
-    
-    if (error.message?.includes('API key')) {
-      return "There's an issue with the AI configuration (API Key). Please ensure the environment variables are correctly set in Vercel.";
+    if (error.message?.includes('429')) {
+      return "Rate Limit Error (429): Too many requests. Please wait a moment.";
+    }
+    if (error.message?.includes('API key not valid')) {
+      return "Configuration Error: The API Key provided is invalid. Please check your Google AI Studio settings.";
     }
 
-    return `Unable to connect to the AI service. (Technical detail: ${error.message || 'Unknown Error'})`;
+    return `Unable to connect to AI service. Technical detail: ${error.message || 'Check browser console for logs.'}`;
   }
 };
