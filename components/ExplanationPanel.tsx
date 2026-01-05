@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Sparkles, Loader2, Bot } from 'lucide-react';
+import { X, Send, Sparkles, Loader2, Bot, AlertTriangle } from 'lucide-react';
 import { ChatState, Message } from '../types';
-import { getGeminiExplanation } from '../services/geminiService';
 
 interface Props {
   state: ChatState;
@@ -68,30 +67,36 @@ const ExplanationPanel: React.FC<Props> = ({ state, onClose, onSendMessage }) =>
           </div>
         )}
 
-        {state.messages.map((msg, i) => (
-          <div 
-            key={i} 
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        {state.messages.map((msg, i) => {
+          const isError = msg.text.startsWith('Error:');
+          return (
             <div 
-              className={`max-w-[85%] rounded-2xl p-4 text-sm shadow-sm ${
-                msg.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-tr-none' 
-                  : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none prose prose-sm'
-              }`}
+              key={i} 
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div 
-                dangerouslySetInnerHTML={{ 
-                  __html: msg.text
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br/>')
-                    .replace(/^\- (.*)/gm, '<li>$1</li>')
-                    .replace(/(<li>.*<\/li>)/gs, '<ul class="list-disc ml-4 my-2">$1</ul>')
-                }} 
-              />
+                className={`max-w-[85%] rounded-2xl p-4 text-sm shadow-sm ${
+                  msg.role === 'user' 
+                    ? 'bg-blue-600 text-white rounded-tr-none' 
+                    : isError
+                      ? 'bg-red-50 text-red-700 border border-red-200 rounded-tl-none'
+                      : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none prose prose-sm'
+                }`}
+              >
+                {isError && <AlertTriangle size={16} className="inline-block mr-2 mb-1" />}
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: msg.text
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\n/g, '<br/>')
+                      .replace(/^\- (.*)/gm, '<li>$1</li>')
+                      .replace(/(<li>.*<\/li>)/gs, '<ul class="list-disc ml-4 my-2">$1</ul>')
+                  }} 
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {state.isLoading && (
           <div className="flex justify-start">
