@@ -1,0 +1,5 @@
+{
+  "name": "Copy of AI Ecosystem Landscape Explorer",
+  "description": "An interactive map of the AI landscape. Click on any technology node to get an AI-powered explanation and chat about its role in the ecosystem.",
+  "requestFramePermissions": []
+}
