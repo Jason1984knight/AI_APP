@@ -4,7 +4,7 @@ import Diagram from './components/Diagram';
 import ExplanationPanel from './components/ExplanationPanel';
 import { ChatState, Message } from './types';
 import { getGeminiExplanation } from './services/geminiService';
-import { Info, Map as MapIcon, Share2, HelpCircle, Sparkles } from 'lucide-react';
+import { Info, Map as MapIcon, Share2, HelpCircle, Sparkles, MessageCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [chatState, setChatState] = useState<ChatState>({
@@ -110,12 +110,13 @@ const App: React.FC = () => {
       />
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-100 py-3 px-8 flex-shrink-0">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between text-slate-400 text-[10px] font-medium uppercase tracking-widest">
-          <p>© 2025 AI Landscape Explorer • Advanced Pan/Zoom Engine</p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-blue-600 transition-colors">Contribute</a>
-            <a href="#" className="hover:text-blue-600 transition-colors">API Docs</a>
+      <footer className="bg-white border-t border-slate-200 py-6 px-8 flex-shrink-0 z-30">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-center gap-6">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all cursor-default">
+            <MessageCircle size={20} className="text-blue-600" />
+            <span className="text-slate-700 font-medium text-base">
+              Have feedback? Reach out to the developer: <span className="font-extrabold text-blue-700">Jason Wei</span>
+            </span>
           </div>
         </div>
       </footer>
